@@ -216,7 +216,7 @@ func getOpenTSDBHTTPInsertHandler() func(req *http.Request) error {
 	}
 	return func(req *http.Request) error {
 		path := strings.ReplaceAll(req.URL.Path, "//", "/")
-		at, err := getAuthTokenFromPath(path)
+		at, err := getAuthTokenFromPath(path, req)
 		if err != nil {
 			return fmt.Errorf("cannot obtain auth token from path %q: %w", path, err)
 		}
@@ -224,8 +224,8 @@ func getOpenTSDBHTTPInsertHandler() func(req *http.Request) error {
 	}
 }
 
-func getAuthTokenFromPath(path string) (*auth.Token, error) {
-	p, err := httpserver.ParsePath(path)
+func getAuthTokenFromPath(path string, r *http.Request) (*auth.Token, error) {
+	p, err := httpserver.ParsePath(r, path)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse multitenant path: %w", err)
 	}
@@ -559,7 +559,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func processMultitenantRequest(w http.ResponseWriter, r *http.Request, path string) bool {
-	p, err := httpserver.ParsePath(path)
+	p, err := httpserver.ParsePath(r, path)
 	if err != nil {
 		// Cannot parse multitenant path. Skip it - probably it will be parsed later.
 		return false

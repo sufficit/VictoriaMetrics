@@ -2,11 +2,16 @@ package httpserver
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
+
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
 )
 
 // Path contains the following path structure:
-// /{prefix}/{tenantID}/{suffix}
+// - /{prefix}/{tenantID}/{suffix}
+// - /{prefix}/{suffix} -H "{tenantID}"
+// in `/{prefix}/{suffix}` format tenant is extracted from HTTP headers
 type Path struct {
 	Prefix    string
 	AuthToken string
@@ -14,46 +19,83 @@ type Path struct {
 }
 
 // ParsePath parses the given path.
-func ParsePath(path string) (*Path, error) {
-	// The path must have the following form:
-	// /{prefix}/{tenantID}/{suffix}
-	//
-	// - prefix must contain `select`, `insert` or `delete`.
-	// - tenantID contains `accountID[:projectID]`, where projectID is optional.
-	//   tenantID may also contain `multitenant` string. In this case the accountID and projectID
-	//   are obtained from vm_account_id and vm_project_id labels of the ingested samples.
-	// - suffix contains arbitrary suffix.
-	//
-	// prefix must be used for the routing to the appropriate service
-	// in the cluster - either vminsert or vmselect.
+//
+// The path may be one of the following forms:
+//
+//  1. /{prefix}/{tenantID}/{suffix} — tenantID is in the URL
+//  2. /{prefix}/{suffix} — tenantID is omitted and expected to be read from AccountID/ProjectID HTTP headers
+//
+// prefix is "select", "insert", or "delete".
+// tenantID is "accountID[:projectID]" or "multitenant".
+func ParsePath(r *http.Request, path string) (*Path, error) {
 	s := skipPrefixSlashes(path)
 	n := strings.IndexByte(s, '/')
 	if n < 0 {
-		return nil, fmt.Errorf("cannot find {prefix} in %q; expecting /{prefix}/{tenantID}/{suffix} format; "+
+		return nil, fmt.Errorf("cannot find {prefix} in %q; expecting /{prefix}/{suffix} or /{prefix}/{tenantID}/{suffix} format; "+
 			"see https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/#url-format", path)
 	}
+
 	prefix := s[:n]
+	tail := skipPrefixSlashes(s[n+1:])
 
-	s = skipPrefixSlashes(s[n+1:])
-	n = strings.IndexByte(s, '/')
-	if n < 0 {
-		return nil, fmt.Errorf("cannot find {tenantID} in %q; expecting /{prefix}/{tenantID}/{suffix} format; "+
+	if tail == "" {
+		return nil, fmt.Errorf("cannot find {suffix} in %q; expecting /{prefix}/{suffix} or /{prefix}/{tenantID}/{suffix} format; "+
 			"see https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/#url-format", path)
 	}
-	tenantID := s[:n]
 
-	s = skipPrefixSlashes(s[n+1:])
+	// Try to split tail into {tenantID}/{suffix} segments.
+	// If the first segment is a valid tenantID - consume it, ignore headers
+	// Otherwise, treat tail as {suffix} and read tenantID from HTTP headers.
+	authToken := ""
+	suffix := tail
+	n = strings.IndexByte(tail, '/')
+	if n >= 0 {
+		authToken = tail[:n]
+	}
+	if isTenantID(authToken) {
+		// cut the tenantID from suffix
+		suffix = skipPrefixSlashes(tail[n+1:])
+	} else {
+		// tenantID is not valid - assume tail is all suffix and tenantID is in headers
+		authToken = tenantIDFromHeaders(r)
+	}
 
 	// Substitute double slashes with single slashes in the path, since such slashes
-	// may appear due improper copy-pasting of the url.
-	suffix := strings.ReplaceAll(s, "//", "/")
+	// may appear due to improper copy-pasting of the url.
+	suffix = strings.ReplaceAll(suffix, "//", "/")
 
-	p := &Path{
+	return &Path{
 		Prefix:    prefix,
-		AuthToken: tenantID,
+		AuthToken: authToken,
 		Suffix:    suffix,
+	}, nil
+}
+
+// isTenantID reports whether s is a valid tenantID: "multitenant" or "accountID[:projectID]".
+func isTenantID(s string) bool {
+	if s == "multitenant" {
+		return true
 	}
-	return p, nil
+	_, _, err := auth.ParseToken(s)
+	return err == nil
+}
+
+// tenantIDFromHeaders reads AccountID and ProjectID header values from request.
+// If headers are missing, it assumes 0:0 as default response.
+func tenantIDFromHeaders(r *http.Request) string {
+	accountID, projectID := "0", "0"
+	ah := r.Header.Get("AccountID")
+	if len(ah) > 0 {
+		accountID = ah
+	}
+	ph := r.Header.Get("ProjectID")
+	if len(ph) > 0 {
+		projectID = ph
+	}
+	if accountID == "multitenant" {
+		return "multitenant"
+	}
+	return fmt.Sprintf("%s:%s", accountID, projectID)
 }
 
 // skipPrefixSlashes remove double slashes which may appear due

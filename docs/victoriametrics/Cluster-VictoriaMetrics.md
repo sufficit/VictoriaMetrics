@@ -585,13 +585,16 @@ The metric is set to `0` when the `vmstorage` isn't in read-only mode.
 The main differences between URL formats of cluster and [Single server](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/)
 versions are that cluster has separate components for read and ingestion path, and because of multi-tenancy support.
 Also in the cluster version the `/prometheus/api/v1` endpoint ingests  `jsonl`, `csv`, `native` and `prometheus` data formats **not** only `prometheus` data.
-Check practical examples of [VictoriaMetrics API](https://docs.victoriametrics.com/victoriametrics/url-examples/).
+
+> Check practical examples of [VictoriaMetrics API](https://docs.victoriametrics.com/victoriametrics/url-examples/).
 
 - URLs for data ingestion: `http://<vminsert>:8480/insert/<accountID>/<suffix>`, where:
   - `<accountID>` is an arbitrary 32-bit integer identifying namespace for data ingestion (aka tenant). It is possible to set it as `accountID:projectID`,
     where `projectID` is also arbitrary 32-bit integer. If `projectID` isn't set, then it equals to `0`. See [multitenancy docs](#multitenancy) for more details.
     The `<accountID>` can be set to `multitenant` string, e.g. `http://<vminsert>:8480/insert/multitenant/<suffix>`. Such urls accept data from multiple tenants
     specified via `vm_account_id` and `vm_project_id` labels. See [multitenancy via labels](#multitenancy-via-labels) for more details.
+    For simplicity, `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vminsert>:8480/insert/<suffix>`. In this case, tenant information will be fetched from
+    HTTP headers `AccountID` and `ProjectID`. It is allowed to set `AccountID` to `multitenant` string. If headers are missing, tenant is set to `0:0` as default value.
   - `<suffix>` may have the following values:
     - `prometheus` and `prometheus/api/v1/write` - for ingesting data with [Prometheus remote write API](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write).
     - `prometheus/api/v1/import` - for importing data obtained via `api/v1/export` at `vmselect` (see below), JSON line format.
@@ -610,6 +613,8 @@ Check practical examples of [VictoriaMetrics API](https://docs.victoriametrics.c
   - `<accountID>` is an arbitrary number identifying data namespace for the query (aka tenant). It is possible to set it as `accountID:projectID`,
   where `projectID` is also arbitrary 32-bit integer. If `projectID` isn't set, then it equals to `0`. See [multitenancy docs](#multitenancy) for more details.
   The `<accountID>` can be set to `multitenant` string, e.g. `http://<vmselect>:8481/select/multitenant/<suffix>` for querying over multiple tenants (see the full list of [supported multitenant read endpoints](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/#multitenancy-via-labels)).
+  For simplicity, `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vmselect>:8481/select/<suffix>`. In this case, tenant information will be fetched from
+  HTTP headers `AccountID` and `ProjectID`. It is allowed to set `AccountID` to `multitenant` string. If headers are missing, tenant is set to `0:0` as default value.
   - `<suffix>` may have the following values:
     - `api/v1/query` - performs [PromQL instant query](https://docs.victoriametrics.com/victoriametrics/keyconcepts/#instant-query).
     - `api/v1/query_range` - performs [PromQL range query](https://docs.victoriametrics.com/victoriametrics/keyconcepts/#range-query).
