@@ -44,6 +44,7 @@ func TestParsePathSuccess(t *testing.T) {
 	f("/insert/prometheus", "AccountID:1;ProjectID:1", "insert", "1:1", "prometheus")
 	f("/insert/prometheus", "AccountID:multitenant", "insert", "multitenant", "prometheus")
 	f("/delete/prometheus/api/v1/admin/tsdb/delete_series", "AccountID:1;ProjectID:1", "delete", "1:1", "prometheus/api/v1/admin/tsdb/delete_series")
+	f("/insert//prometheus/api/v1/import/prometheus", "AccountID:2", "insert", "2:0", "prometheus/api/v1/import/prometheus")
 
 	// If headers are empty, we assume 0:0 as default.
 	f("/insert/prometheus", "", "insert", "0:0", "prometheus")
