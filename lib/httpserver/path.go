@@ -27,7 +27,7 @@ type Path struct {
 //
 // prefix is "select", "insert", or "delete".
 // tenantID is "accountID[:projectID]" or "multitenant".
-func ParsePath(r *http.Request, path string) (*Path, error) {
+func ParsePath(h http.Header, path string) (*Path, error) {
 	s := skipPrefixSlashes(path)
 	n := strings.IndexByte(s, '/')
 	if n < 0 {
@@ -57,7 +57,7 @@ func ParsePath(r *http.Request, path string) (*Path, error) {
 		suffix = skipPrefixSlashes(tail[n+1:])
 	} else {
 		// tenantID is not valid - assume tail is all suffix and tenantID is in headers
-		tenantID = tenantIDFromHeaders(r)
+		tenantID = tenantIDFromHeaders(h)
 	}
 
 	// Substitute double slashes with single slashes in the path, since such slashes
@@ -82,13 +82,13 @@ func isTenantID(s string) bool {
 
 // tenantIDFromHeaders reads AccountID and ProjectID header values from request.
 // If headers are missing, it assumes 0:0 as default response.
-func tenantIDFromHeaders(r *http.Request) string {
+func tenantIDFromHeaders(h http.Header) string {
 	accountID, projectID := "0", "0"
-	ah := r.Header.Get("AccountID")
+	ah := h.Get("AccountID")
 	if len(ah) > 0 {
 		accountID = ah
 	}
-	ph := r.Header.Get("ProjectID")
+	ph := h.Get("ProjectID")
 	if len(ph) > 0 {
 		projectID = ph
 	}

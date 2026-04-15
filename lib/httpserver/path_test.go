@@ -9,19 +9,16 @@ import (
 func TestParsePathSuccess(t *testing.T) {
 	f := func(path, headers, prefix, authToken, suffix string) {
 		t.Helper()
-		r, err := http.NewRequest("GET", path, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
+		header := make(http.Header)
 		hs := strings.Split(headers, ";")
 		for _, h := range hs {
 			if h == "" {
 				continue
 			}
 			parts := strings.Split(h, ":")
-			r.Header.Set(parts[0], parts[1])
+			header.Set(parts[0], parts[1])
 		}
-		p, err := ParsePath(r, path)
+		p, err := ParsePath(header, path)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -72,11 +69,7 @@ func TestParsePathSuccess(t *testing.T) {
 func TestParsePathFailure(t *testing.T) {
 	f := func(path string) {
 		t.Helper()
-		r, err := http.NewRequest("GET", path, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-		p, err := ParsePath(r, path)
+		p, err := ParsePath(nil, path)
 		if err == nil {
 			t.Fatalf("expecting non-nil error; got path %+v", p)
 		}
