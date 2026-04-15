@@ -30,7 +30,7 @@ type Path struct {
 // tenantID is "accountID[:projectID]" or "multitenant".
 //
 // This function doesn't validate correctness of AuthToken content.
-func ParsePath(h http.Header, path string) (*Path, error) {
+func ParsePath(path string, h http.Header) (*Path, error) {
 	s := skipPrefixSlashes(path)
 	n := strings.IndexByte(s, '/')
 	if n < 0 {

@@ -210,7 +210,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request) bool {
 `)
 		return true
 	}
-	p, err := httpserver.ParsePath(r.Header, r.URL.Path)
+	p, err := httpserver.ParsePath(r.URL.Path, r.Header)
 	if err != nil {
 		httpserver.Errorf(w, r, "cannot parse path %q: %s", r.URL.Path, err)
 		return true

@@ -18,7 +18,7 @@ func TestParsePathSuccess(t *testing.T) {
 			parts := strings.Split(h, ":")
 			header.Set(parts[0], parts[1])
 		}
-		p, err := ParsePath(header, path)
+		p, err := ParsePath(path, header)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -69,7 +69,7 @@ func TestParsePathSuccess(t *testing.T) {
 func TestParsePathFailure(t *testing.T) {
 	f := func(path string) {
 		t.Helper()
-		p, err := ParsePath(nil, path)
+		p, err := ParsePath(path, nil)
 		if err == nil {
 			t.Fatalf("expecting non-nil error; got path %+v", p)
 		}

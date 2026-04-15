@@ -26,7 +26,7 @@ var (
 // See http://opentsdb.net/docs/build/html/api_http/put.html
 func InsertHandler(req *http.Request) error {
 	path := req.URL.Path
-	p, err := httpserver.ParsePath(req.Header, path)
+	p, err := httpserver.ParsePath(path, req.Header)
 	if err != nil {
 		return fmt.Errorf("cannot parse path %q: %w", path, err)
 	}
