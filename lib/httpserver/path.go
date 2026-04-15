@@ -29,7 +29,7 @@ type Path struct {
 // prefix is "select", "insert", or "delete".
 // tenantID is "accountID[:projectID]" or "multitenant".
 //
-// This function doesn't validate correctness of AuthToken content.
+// This function doesn't validate correctness of {tenantID} content.
 func ParsePath(path string, h http.Header) (*Path, error) {
 	s := skipPrefixSlashes(path)
 	n := strings.IndexByte(s, '/')

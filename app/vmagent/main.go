@@ -216,7 +216,7 @@ func getOpenTSDBHTTPInsertHandler() func(req *http.Request) error {
 	}
 	return func(req *http.Request) error {
 		path := strings.ReplaceAll(req.URL.Path, "//", "/")
-		at, err := getAuthTokenFromPath(path, req)
+		at, err := getAuthTokenFromPath(path, req.Header)
 		if err != nil {
 			return fmt.Errorf("cannot obtain auth token from path %q: %w", path, err)
 		}
@@ -224,8 +224,8 @@ func getOpenTSDBHTTPInsertHandler() func(req *http.Request) error {
 	}
 }
 
-func getAuthTokenFromPath(path string, r *http.Request) (*auth.Token, error) {
-	p, err := httpserver.ParsePath(path, r.Header)
+func getAuthTokenFromPath(path string, header http.Header) (*auth.Token, error) {
+	p, err := httpserver.ParsePath(path, header)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse multitenant path: %w", err)
 	}
