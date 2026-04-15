@@ -596,7 +596,7 @@ Also in the cluster version the `/prometheus/api/v1` endpoint ingests  `jsonl`, 
 - URLs for data ingestion: `http://<vminsert>:8480/insert/<accountID>/<suffix>`, where:
   - `<accountID>` is an arbitrary 32-bit integer identifying namespace for data ingestion (aka tenant). It is possible to set it as `accountID:projectID`,
     where `projectID` is also arbitrary 32-bit integer. If `projectID` isn't set, then it equals to `0`. See [multitenancy docs](#multitenancy) for more details.
-    `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vminsert>:8481/insert/<suffix>`. In this case, tenant information will be fetched from
+    `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vminsert>:8480/insert/<suffix>`. In this case, tenant information will be fetched from
     HTTP headers `AccountID` and `ProjectID`. If headers are missing and used path is `/insert/<suffix>`, then tenant is set to `0:0` as default value.
     The `<accountID>` can be set to `multitenant` string, e.g. `http://<vminsert>:8480/insert/multitenant/<suffix>`. Such urls accept data from multiple tenants
     specified via `vm_account_id` and `vm_project_id` labels. See [multitenancy via labels](#multitenancy-via-labels) for more details.
