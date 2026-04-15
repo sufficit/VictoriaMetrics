@@ -46,18 +46,18 @@ func ParsePath(r *http.Request, path string) (*Path, error) {
 	// Try to split tail into {tenantID}/{suffix} segments.
 	// If the first segment is a valid tenantID - consume it, ignore headers
 	// Otherwise, treat tail as {suffix} and read tenantID from HTTP headers.
-	authToken := ""
+	tenantID := ""
 	suffix := tail
 	n = strings.IndexByte(tail, '/')
 	if n >= 0 {
-		authToken = tail[:n]
+		tenantID = tail[:n]
 	}
-	if isTenantID(authToken) {
+	if isTenantID(tenantID) {
 		// cut the tenantID from suffix
 		suffix = skipPrefixSlashes(tail[n+1:])
 	} else {
 		// tenantID is not valid - assume tail is all suffix and tenantID is in headers
-		authToken = tenantIDFromHeaders(r)
+		tenantID = tenantIDFromHeaders(r)
 	}
 
 	// Substitute double slashes with single slashes in the path, since such slashes
@@ -66,7 +66,7 @@ func ParsePath(r *http.Request, path string) (*Path, error) {
 
 	return &Path{
 		Prefix:    prefix,
-		AuthToken: authToken,
+		AuthToken: tenantID,
 		Suffix:    suffix,
 	}, nil
 }
