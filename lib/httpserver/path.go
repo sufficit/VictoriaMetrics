@@ -23,10 +23,13 @@ type Path struct {
 // The path may be one of the following forms:
 //
 //  1. /{prefix}/{tenantID}/{suffix} — tenantID is in the URL
-//  2. /{prefix}/{suffix} — tenantID is omitted and expected to be read from AccountID/ProjectID HTTP headers
+//  2. /{prefix}/{suffix} — tenantID is omitted and expected to be read from AccountID/ProjectID HTTP headers.
+//     If these headers are missing, tenantID is set to "0:0".
 //
 // prefix is "select", "insert", or "delete".
 // tenantID is "accountID[:projectID]" or "multitenant".
+//
+// This function doesn't validate correctness of AuthToken content.
 func ParsePath(h http.Header, path string) (*Path, error) {
 	s := skipPrefixSlashes(path)
 	n := strings.IndexByte(s, '/')
