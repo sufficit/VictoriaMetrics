@@ -90,14 +90,15 @@ func tenantIDFromHeaders(h http.Header) string {
 	ah := h.Get("AccountID")
 	if len(ah) > 0 {
 		accountID = ah
+		if accountID == "multitenant" {
+			return "multitenant"
+		}
 	}
 	ph := h.Get("ProjectID")
 	if len(ph) > 0 {
 		projectID = ph
 	}
-	if accountID == "multitenant" {
-		return "multitenant"
-	}
+
 	return fmt.Sprintf("%s:%s", accountID, projectID)
 }
 

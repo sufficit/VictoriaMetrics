@@ -565,8 +565,9 @@ func processMultitenantRequest(w http.ResponseWriter, r *http.Request, path stri
 		return false
 	}
 	if p.Prefix != "insert" {
-		httpserver.Errorf(w, r, `unsupported multitenant prefix: %q; expected "insert"`, p.Prefix)
-		return true
+		// processMultitenantRequest is called for all unmatched path variants,
+		// but we should try parsing only /insert prefixed to avoid catching all possible paths.
+		return false
 	}
 	at, err := auth.NewTokenPossibleMultitenant(p.AuthToken)
 	if err != nil {
