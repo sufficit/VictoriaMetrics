@@ -94,12 +94,14 @@ See also [multitenancy via labels](#multitenancy-via-labels).
 
 ### Multitenancy via labels
 
-**Writes:**
+#### Writes:
 
-`vminsert` can accept data from multiple [tenants](#multitenancy) via a special `multitenant` endpoints `http://vminsert:8480/insert/multitenant/<suffix>`,
+`vminsert` can accept data from multiple [tenants](#multitenancy) via a special `multitenant` endpoints :
+ - `http://vminsert:8480/insert/multitenant/<suffix>`
+ - `http://vminsert:8480/insert/<suffix>` and HTTP header `AccountID: multitenant` {{% available_from "#" %}}.
 where `<suffix>` can be replaced with any supported suffix for data ingestion from [this list](#url-format).
-In this case the account ID and project ID are obtained from optional `vm_account_id` and `vm_project_id` labels of the incoming samples.
-If `vm_account_id` or `vm_project_id` labels are missing or invalid, then the corresponding account ID and project ID are set to 0.
+In this case the `accountID` and `projectID` are obtained from optional `vm_account_id` and `vm_project_id` labels of the incoming samples.
+If `vm_account_id` or `vm_project_id` labels are missing or invalid, then the corresponding `accountID` and `projectID` are set to 0.
 These labels are automatically removed from samples before forwarding them to `vmstorage`.
 For example, if the following samples are written into `http://vminsert:8480/insert/multitenant/prometheus/api/v1/write`:
 
@@ -119,11 +121,14 @@ such as [Graphite](https://docs.victoriametrics.com/victoriametrics/integrations
 [InfluxDB line protocol via TCP and UDP](https://docs.victoriametrics.com/victoriametrics/integrations/influxdb/) and
 [OpenTSDB telnet put protocol](https://docs.victoriametrics.com/victoriametrics/integrations/opentsdb/#sending-data-via-telnet).
 
-**Reads:**
+#### Reads:
 
 _For better performance prefer specifying [tenants in read URL](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/#url-format)._
 
-`vmselect` can execute {{% available_from "v1.104.0" %}} queries over multiple [tenants](#multitenancy) via special `multitenant` endpoints `http://vmselect:8481/select/multitenant/<suffix>`.
+`vmselect` can execute {{% available_from "v1.104.0" %}} queries over multiple [tenants](#multitenancy) via special `multitenant` endpoints:
+ - `http://vmselect:8481/select/multitenant/<suffix>`
+ - `http://vmselect:8481/select/<suffix>` and HTTP header `AccountID: multitenant` {{% available_from "#" %}}.
+
 Currently supported endpoints for `<suffix>` are:
 
 - `/prometheus/api/v1/query`
@@ -591,10 +596,11 @@ Also in the cluster version the `/prometheus/api/v1` endpoint ingests  `jsonl`, 
 - URLs for data ingestion: `http://<vminsert>:8480/insert/<accountID>/<suffix>`, where:
   - `<accountID>` is an arbitrary 32-bit integer identifying namespace for data ingestion (aka tenant). It is possible to set it as `accountID:projectID`,
     where `projectID` is also arbitrary 32-bit integer. If `projectID` isn't set, then it equals to `0`. See [multitenancy docs](#multitenancy) for more details.
+    `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vminsert>:8481/insert/<suffix>`. In this case, tenant information will be fetched from
+    HTTP headers `AccountID` and `ProjectID`. If headers are missing and used path is `/insert/<suffix>`, then tenant is set to `0:0` as default value.
     The `<accountID>` can be set to `multitenant` string, e.g. `http://<vminsert>:8480/insert/multitenant/<suffix>`. Such urls accept data from multiple tenants
     specified via `vm_account_id` and `vm_project_id` labels. See [multitenancy via labels](#multitenancy-via-labels) for more details.
-    For simplicity, `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vminsert>:8480/insert/<suffix>`. In this case, tenant information will be fetched from
-    HTTP headers `AccountID` and `ProjectID`. It is allowed to set `AccountID` to `multitenant` string. If headers are missing, tenant is set to `0:0` as default value.
+    It is allowed to set `AccountID` to `multitenant` string.
   - `<suffix>` may have the following values:
     - `prometheus` and `prometheus/api/v1/write` - for ingesting data with [Prometheus remote write API](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write).
     - `prometheus/api/v1/import` - for importing data obtained via `api/v1/export` at `vmselect` (see below), JSON line format.
@@ -611,10 +617,11 @@ Also in the cluster version the `/prometheus/api/v1` endpoint ingests  `jsonl`, 
 
 - URLs for [Prometheus querying API](https://prometheus.io/docs/prometheus/latest/querying/api/): `http://<vmselect>:8481/select/<accountID>/prometheus/<suffix>`, where:
   - `<accountID>` is an arbitrary number identifying data namespace for the query (aka tenant). It is possible to set it as `accountID:projectID`,
-  where `projectID` is also arbitrary 32-bit integer. If `projectID` isn't set, then it equals to `0`. See [multitenancy docs](#multitenancy) for more details.
-  The `<accountID>` can be set to `multitenant` string, e.g. `http://<vmselect>:8481/select/multitenant/<suffix>` for querying over multiple tenants (see the full list of [supported multitenant read endpoints](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/#multitenancy-via-labels)).
-  For simplicity, `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vmselect>:8481/select/<suffix>`. In this case, tenant information will be fetched from
-  HTTP headers `AccountID` and `ProjectID`. It is allowed to set `AccountID` to `multitenant` string. If headers are missing, tenant is set to `0:0` as default value.
+    where `projectID` is also arbitrary 32-bit integer. If `projectID` isn't set, then it equals to `0`. See [multitenancy docs](#multitenancy) for more details.
+    `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vmselect>:8481/select/prometheus/<suffix>`. In this case, tenant information will be fetched from
+    HTTP headers `AccountID` and `ProjectID`. If headers are missing and used path is `/select/prometheus/<suffix>`, then tenant is set to `0:0` as default value.
+    The `<accountID>` can be set to `multitenant` string, e.g. `http://<vmselect>:8481/select/multitenant/<suffix>` for querying over multiple tenants (see the full list of [supported multitenant read endpoints](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/#multitenancy-via-labels)).
+    It is allowed to set `AccountID` to `multitenant` string.
   - `<suffix>` may have the following values:
     - `api/v1/query` - performs [PromQL instant query](https://docs.victoriametrics.com/victoriametrics/keyconcepts/#instant-query).
     - `api/v1/query_range` - performs [PromQL range query](https://docs.victoriametrics.com/victoriametrics/keyconcepts/#range-query).
@@ -634,7 +641,9 @@ Also in the cluster version the `/prometheus/api/v1` endpoint ingests  `jsonl`, 
     - `metric-relabel-debug` - for debugging [relabeling rules](https://docs.victoriametrics.com/victoriametrics/relabeling/).
 
 - URLs for [Graphite Metrics API](https://graphite-api.readthedocs.io/en/latest/api.html#the-metrics-api): `http://<vmselect>:8481/select/<accountID>/graphite/<suffix>`, where:
-  - `<accountID>` is an arbitrary number identifying data namespace for query (aka tenant)
+  - `<accountID>` is an arbitrary number identifying data namespace for query (aka tenant).
+    `<accountID>` in the path can be omitted{{% available_from "#" %}}: `http://<vmselect>:8481/select/graphite/<suffix>`. In this case, tenant information will be fetched from
+    HTTP headers `AccountID` and `ProjectID`. If headers are missing and used path is `/select/graphite/<suffix>`, then tenant is set to `0:0` as default value.
   - `<suffix>` may have the following values:
     - `render` - implements Graphite Render API. See [these docs](https://graphite.readthedocs.io/en/stable/render_api.html).
     - `metrics/find` - searches Graphite metrics. See [these docs](https://graphite-api.readthedocs.io/en/latest/api.html#metrics-find).
