@@ -2,7 +2,6 @@ package tests
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -190,12 +189,6 @@ func TestClusterMetricNamesStats(t *testing.T) {
 		vmstorage1.ForceFlush(t)
 		vmstorage2.ForceFlush(t)
 
-		// prepare tenant header
-		tenant := strings.Split(tenantID, ":")
-		headers := make(http.Header)
-		headers.Set("AccountID", tenant[0])
-		headers.Set("ProjectID", tenant[1])
-
 		// verify ingest request correctly registered
 		expected := apptest.MetricNamesStatsResponse{
 			Records: []apptest.MetricNamesStatsRecord{
@@ -228,11 +221,6 @@ func TestClusterMetricNamesStats(t *testing.T) {
 			t.Errorf("unexpected response tenant: %s (-want, +got):\n%s", tenantID, diff)
 		}
 
-		gotStatsViaHeaders := vmselect.MetricNamesStats(t, "", "", "", apptest.QueryOpts{Headers: headers})
-		if diff := cmp.Diff(expected, gotStatsViaHeaders); diff != "" {
-			t.Errorf("unexpected response tenant: %s (-want, +got):\n%s", tenantID, diff)
-		}
-
 		expectedStatsResponse := apptest.TSDBStatusResponse{
 			Data: apptest.TSDBStatusResponseData{
 				TotalSeries:          6,
@@ -255,14 +243,8 @@ func TestClusterMetricNamesStats(t *testing.T) {
 			},
 		}
 		expectedStatsResponse.Sort()
-
 		gotStatus := vmselect.APIV1StatusTSDB(t, "", date, "", apptest.QueryOpts{Tenant: tenantID})
 		if diff := cmp.Diff(expectedStatsResponse, gotStatus, tsdbMetricNameEntryCmpOpts); diff != "" {
-			t.Errorf("unexpected APIV1StatusTSDB response tenant: %s (-want, +got):\n%s", tenantID, diff)
-		}
-
-		gotStatusViaHeaders := vmselect.APIV1StatusTSDB(t, "", date, "", apptest.QueryOpts{Headers: headers})
-		if diff := cmp.Diff(expectedStatsResponse, gotStatusViaHeaders, tsdbMetricNameEntryCmpOpts); diff != "" {
 			t.Errorf("unexpected APIV1StatusTSDB response tenant: %s (-want, +got):\n%s", tenantID, diff)
 		}
 	}
@@ -278,13 +260,6 @@ func TestClusterMetricNamesStats(t *testing.T) {
 	}
 	gotStats := vmselect.MetricNamesStats(t, "", "", "", apptest.QueryOpts{Tenant: "multitenant"})
 	if diff := cmp.Diff(expected, gotStats); diff != "" {
-		t.Errorf("unexpected response (-want, +got):\n%s", diff)
-	}
-
-	multitenant := make(http.Header)
-	multitenant.Set("AccountID", "multitenant")
-	gotStatsViaHeaders := vmselect.MetricNamesStats(t, "", "", "", apptest.QueryOpts{Headers: multitenant})
-	if diff := cmp.Diff(expected, gotStatsViaHeaders); diff != "" {
 		t.Errorf("unexpected response (-want, +got):\n%s", diff)
 	}
 

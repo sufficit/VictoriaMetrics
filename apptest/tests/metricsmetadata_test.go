@@ -2,7 +2,6 @@ package tests
 
 import (
 	"fmt"
-	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -186,10 +185,7 @@ func TestClusterMetricsMetadata(t *testing.T) {
 		}
 	}
 
-	headers := make(http.Header)
-	headers.Set("AccountID", "2")
-	headers.Set("ProjectID", "2")
-	assertMetadataIngestOn(t, vminsert1, apptest.QueryOpts{Headers: headers})
+	assertMetadataIngestOn(t, vminsert1, apptest.QueryOpts{Tenant: "3:3"})
 	assertMetadataIngestOn(t, vminsert2, apptest.QueryOpts{Tenant: "3:3"})
 	assertMetadataIngestOn(t, vminsertGlobal, apptest.QueryOpts{Tenant: "5:5"})
 
@@ -211,10 +207,7 @@ func TestClusterMetricsMetadata(t *testing.T) {
 	tc.Assert(&apptest.AssertOptions{
 		Msg: "unexpected /api/v1/metadata response",
 		Got: func() any {
-			headers := make(http.Header)
-			headers.Set("AccountID", "5")
-			headers.Set("ProjectID", "5")
-			return vmselect.PrometheusAPIV1Metadata(t, "", 3, apptest.QueryOpts{Headers: headers})
+			return vmselect.PrometheusAPIV1Metadata(t, "", 3, apptest.QueryOpts{Tenant: "5:5"})
 		},
 		Want: &apptest.PrometheusAPIV1Metadata{
 			Status: "success",
