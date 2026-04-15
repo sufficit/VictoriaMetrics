@@ -185,7 +185,7 @@ func TestClusterMetricsMetadata(t *testing.T) {
 		}
 	}
 
-	assertMetadataIngestOn(t, vminsert1, apptest.QueryOpts{Tenant: "3:3"})
+	assertMetadataIngestOn(t, vminsert1, apptest.QueryOpts{Tenant: "2:2"})
 	assertMetadataIngestOn(t, vminsert2, apptest.QueryOpts{Tenant: "3:3"})
 	assertMetadataIngestOn(t, vminsertGlobal, apptest.QueryOpts{Tenant: "5:5"})
 
