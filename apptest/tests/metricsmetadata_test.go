@@ -162,10 +162,10 @@ func TestClusterMetricsMetadata(t *testing.T) {
 		},
 	}
 
-	assertMetadataIngestOn := func(t *testing.T, vminsert *apptest.Vminsert, opts apptest.QueryOpts) {
+	assertMetadataIngestOn := func(t *testing.T, vminsert *apptest.Vminsert, tenantID string) {
 		t.Helper()
-		vminsert.PrometheusAPIV1ImportPrometheus(t, prometheusTextDataSet, opts)
-		vminsert.PrometheusAPIV1Write(t, prometheusRemoteWriteDataSet, opts)
+		vminsert.PrometheusAPIV1ImportPrometheus(t, prometheusTextDataSet, apptest.QueryOpts{Tenant: tenantID})
+		vminsert.PrometheusAPIV1Write(t, prometheusRemoteWriteDataSet, apptest.QueryOpts{Tenant: tenantID})
 		vmstorage1.ForceFlush(t)
 		vmstorage2.ForceFlush(t)
 		expected := &apptest.PrometheusAPIV1Metadata{
@@ -179,15 +179,15 @@ func TestClusterMetricsMetadata(t *testing.T) {
 				"metric_name_6": {{Help: "some help message", Type: "stateset"}},
 			},
 		}
-		gotStats := vmselect.PrometheusAPIV1Metadata(t, "", 0, opts)
+		gotStats := vmselect.PrometheusAPIV1Metadata(t, "", 0, apptest.QueryOpts{Tenant: tenantID})
 		if diff := cmp.Diff(expected, gotStats); diff != "" {
 			t.Errorf("unexpected response (-want, +got):\n%s", diff)
 		}
 	}
 
-	assertMetadataIngestOn(t, vminsert1, apptest.QueryOpts{Tenant: "2:2"})
-	assertMetadataIngestOn(t, vminsert2, apptest.QueryOpts{Tenant: "3:3"})
-	assertMetadataIngestOn(t, vminsertGlobal, apptest.QueryOpts{Tenant: "5:5"})
+	assertMetadataIngestOn(t, vminsert1, "2:2")
+	assertMetadataIngestOn(t, vminsert2, "3:3")
+	assertMetadataIngestOn(t, vminsertGlobal, "5:5")
 
 	// check query metric name filter
 	tc.Assert(&apptest.AssertOptions{
