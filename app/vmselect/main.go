@@ -618,11 +618,19 @@ func handleStaticAndSimpleRequests(w http.ResponseWriter, r *http.Request, path 
 	}
 	if strings.HasPrefix(p.Suffix, "static") {
 		prefix := strings.Join([]string{"", p.Prefix, p.AuthToken}, "/")
+		if !strings.HasPrefix(path, prefix) {
+			// authToken is missing in original path, so it was fetched from headers - cut it from prefix
+			prefix, _ = strings.CutSuffix(prefix, p.AuthToken)
+		}
 		http.StripPrefix(prefix, staticServer).ServeHTTP(w, r)
 		return true
 	}
 	if strings.HasPrefix(p.Suffix, "prometheus/static") {
 		prefix := strings.Join([]string{"", p.Prefix, p.AuthToken}, "/")
+		if !strings.HasPrefix(path, prefix) {
+			// authToken is missing in original path, so it was fetched from headers - cut it from prefix
+			prefix, _ = strings.CutSuffix(prefix, p.AuthToken)
+		}
 		r.URL.Path = strings.Replace(r.URL.Path, "/prometheus/static", "/static", 1)
 		http.StripPrefix(prefix, staticServer).ServeHTTP(w, r)
 		return true
@@ -672,6 +680,10 @@ func handleStaticAndSimpleRequests(w http.ResponseWriter, r *http.Request, path 
 			w.Header().Set("Cache-Control", "max-age=31536000")
 		}
 		prefix := strings.Join([]string{"", p.Prefix, p.AuthToken}, "/")
+		if !strings.HasPrefix(path, prefix) {
+			// authToken is missing in original path, so it was fetched from headers - cut it from prefix
+			prefix, _ = strings.CutSuffix(prefix, p.AuthToken)
+		}
 		r.URL.Path = strings.Replace(r.URL.Path, "/prometheus/vmui/", "/vmui/", 1)
 		http.StripPrefix(prefix, vmuiFileServer).ServeHTTP(w, r)
 		return true

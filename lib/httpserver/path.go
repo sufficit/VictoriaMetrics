@@ -11,7 +11,7 @@ import (
 // Path contains the following path structure:
 // - /{prefix}/{tenantID}/{suffix}
 // - /{prefix}/{suffix} -H "{tenantID}"
-// in `/{prefix}/{suffix}` format tenant is extracted from HTTP headers
+// in `/{prefix}/{suffix}` format tenantID is extracted from HTTP headers
 type Path struct {
 	Prefix    string
 	AuthToken string
@@ -24,10 +24,11 @@ type Path struct {
 //
 //  1. /{prefix}/{tenantID}/{suffix} — tenantID is in the URL
 //  2. /{prefix}/{suffix} — tenantID is omitted and expected to be read from AccountID/ProjectID HTTP headers.
-//     If these headers are missing, tenantID is set to "0:0".
+//     If these headers are missing, tenantID is set to "0:0" to be consistent with VictoriaLogs behavior.
 //
 // prefix is "select", "insert", or "delete".
 // tenantID is "accountID[:projectID]" or "multitenant".
+// tenantID specified in path always takes priority over headers for backward compatibility.
 //
 // This function doesn't validate correctness of {tenantID} content.
 func ParsePath(path string, h http.Header) (*Path, error) {
