@@ -27,6 +27,7 @@ See also [LTS releases](https://docs.victoriametrics.com/victoriametrics/lts-rel
 ## tip
 
 * FEATURE: [vmui](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#vmui): add correct parameters to "Run query" link on Alerting Rules page. See [#10366](https://github.com/VictoriaMetrics/VictoriaMetrics/pull/10366).
+* FEATURE: [alerts](https://github.com/VictoriaMetrics/VictoriaMetrics/blob/master/deployment/docker/rules): add new `MetricNameStatsCacheUtilizationIsTooHigh` alerting rule to track overutilization of [Metric names usage stats tracker](https://docs.victoriametrics.com/victoriametrics/#track-ingested-metrics-usage) (used in [Cardinality Explorer](https://docs.victoriametrics.com/victoriametrics/#cardinality-explorer)).
 
 * BUGFIX: [vmagent](https://docs.victoriametrics.com/victoriametrics/vmagent/) and [vmsingle](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/): properly apply maxScrapeSize limit to scrape error request body read.
 * BUGFIX: [vmagent](https://docs.victoriametrics.com/victoriametrics/vmagent/): fix `ec2_sd_configs` returning 401 `AuthFailure` from AWS when credentials are obtained via IRSA, instance role or `AWS_CONTAINER_CREDENTIALS_*` env vars. The regression was introduced in [v1.140.0](https://github.com/VictoriaMetrics/VictoriaMetrics/releases/tag/v1.140.0). See [#10815](https://github.com/VictoriaMetrics/VictoriaMetrics/issues/10815).
