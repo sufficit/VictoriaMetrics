@@ -499,9 +499,6 @@ func DeleteHandler(startTime time.Time, r *http.Request) error {
 	}
 	cp.deadline = searchutil.GetDeadlineForDelete(r, startTime)
 
-	if !cp.IsDefaultTimeRange() {
-		return fmt.Errorf("start=%d and end=%d args aren't supported. Remove these args from the query in order to delete all the matching metrics", cp.start, cp.end)
-	}
 	sq := storage.NewSearchQuery(cp.start, cp.end, cp.filterss, *maxDeleteSeries)
 	deletedCount, err := netstorage.DeleteSeries(nil, sq, cp.deadline)
 	if err != nil {
