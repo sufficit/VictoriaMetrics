@@ -60,9 +60,10 @@ type Storage struct {
 	// indexdb rotation.
 	legacyNextRotationTimestamp atomic.Int64
 
-	path           string
-	cachePath      string
-	retentionMsecs int64
+	path             string
+	cachePath        string
+	retentionMsecs   int64
+	retentionFilters []*retentionFilter
 
 	// lock file for exclusive access to the storage on the given path.
 	flockF *os.File
@@ -166,6 +167,11 @@ type OpenOptions struct {
 	TrackMetricNamesStats bool
 	IDBPrefillStart       time.Duration
 	LogNewSeries          bool
+
+	// RetentionFilters holds per-dataset retention overrides. Each entry associates
+	// a Prometheus-style label selector with a shorter or longer retention period.
+	// The first matching filter wins. Metrics not matching any filter use Retention.
+	RetentionFilters []string
 }
 
 // MustOpenStorage opens storage on the given path with the given retentionMsecs.
@@ -193,6 +199,13 @@ func MustOpenStorage(path string, opts OpenOptions) *Storage {
 		idbPrefillStartSeconds: idbPrefillStart.Milliseconds() / 1000,
 	}
 	s.logNewSeries.Store(opts.LogNewSeries)
+	if len(opts.RetentionFilters) > 0 {
+		filters, err := parseRetentionFilters(opts.RetentionFilters)
+		if err != nil {
+			logger.Panicf("FATAL: cannot parse -retentionFilter: %s", err)
+		}
+		s.retentionFilters = filters
+	}
 
 	fs.MustMkdirIfNotExist(path)
 
@@ -717,6 +730,39 @@ var freeDiskSpaceLimitBytes uint64
 // IsReadOnly returns information is storage in read only mode
 func (s *Storage) IsReadOnly() bool {
 	return s.isReadOnly.Load()
+}
+
+// makeRetentionDeadlineFunc returns a function that, given a metricID, returns
+// the earliest timestamp (in milliseconds) that should be retained during a merge.
+// When retentionFilters are configured, the function looks up the MetricName for
+// each metricID and applies the first matching filter. The global deadline is used
+// as a floor so that per-filter deadlines can never be more permissive than the
+// global retention period.
+func (s *Storage) makeRetentionDeadlineFunc(idb *indexDB, currentTimestamp int64) func(metricID uint64) int64 {
+	globalDeadline := currentTimestamp - s.retentionMsecs
+	if len(s.retentionFilters) == 0 {
+		return func(_ uint64) int64 { return globalDeadline }
+	}
+	return func(metricID uint64) int64 {
+		data, ok := idb.searchMetricName(nil, metricID, false)
+		if !ok {
+			return globalDeadline
+		}
+		var mn MetricName
+		if err := mn.Unmarshal(data); err != nil {
+			return globalDeadline
+		}
+		for _, rf := range s.retentionFilters {
+			if rf.matchMetricName(&mn) {
+				deadline := currentTimestamp - rf.retentionMs
+				if deadline > globalDeadline {
+					return deadline
+				}
+				return globalDeadline
+			}
+		}
+		return globalDeadline
+	}
 }
 
 func (s *Storage) startFreeDiskSpaceWatcher() {

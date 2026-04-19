@@ -13,8 +13,14 @@ type blockStreamMerger struct {
 
 	bsrHeap blockStreamReaderHeap
 
-	// Blocks with smaller timestamps are removed because of retention.
-	retentionDeadline int64
+	// retentionDeadlineFunc returns the retention deadline for the given metricID.
+	// Blocks whose MaxTimestamp is below the returned deadline are removed during merge.
+	retentionDeadlineFunc func(metricID uint64) int64
+
+	// Cache for retentionDeadlineFunc to avoid redundant lookups for consecutive
+	// blocks belonging to the same metricID (blocks are sorted by TSID).
+	lastMetricID uint64
+	lastDeadline int64
 
 	// Whether the call to NextBlock must be no-op.
 	nextBlockNoop bool
@@ -31,15 +37,17 @@ func (bsm *blockStreamMerger) reset() {
 	}
 	bsm.bsrHeap = bsm.bsrHeap[:0]
 
-	bsm.retentionDeadline = 0
+	bsm.retentionDeadlineFunc = nil
+	bsm.lastMetricID = 0
+	bsm.lastDeadline = 0
 	bsm.nextBlockNoop = false
 	bsm.err = nil
 }
 
 // Init initializes bsm with the given bsrs.
-func (bsm *blockStreamMerger) Init(bsrs []*blockStreamReader, retentionDeadline int64) {
+func (bsm *blockStreamMerger) Init(bsrs []*blockStreamReader, retentionDeadlineFunc func(metricID uint64) int64) {
 	bsm.reset()
-	bsm.retentionDeadline = retentionDeadline
+	bsm.retentionDeadlineFunc = retentionDeadlineFunc
 	for _, bsr := range bsrs {
 		if bsr.NextBlock() {
 			bsm.bsrHeap = append(bsm.bsrHeap, bsr)
@@ -61,8 +69,15 @@ func (bsm *blockStreamMerger) Init(bsrs []*blockStreamReader, retentionDeadline 
 	bsm.nextBlockNoop = true
 }
 
-func (bsm *blockStreamMerger) getRetentionDeadline(_ *blockHeader) int64 {
-	return bsm.retentionDeadline
+func (bsm *blockStreamMerger) getRetentionDeadline(bh *blockHeader) int64 {
+	metricID := bh.TSID.MetricID
+	if metricID == bsm.lastMetricID {
+		return bsm.lastDeadline
+	}
+	deadline := bsm.retentionDeadlineFunc(metricID)
+	bsm.lastMetricID = metricID
+	bsm.lastDeadline = deadline
+	return deadline
 }
 
 // NextBlock stores the next block in bsm.Block.

@@ -1599,11 +1599,11 @@ func (pt *partition) mergePartsInternal(dstPartPath string, bsw *blockStreamWrit
 	default:
 		logger.Panicf("BUG: unknown partType=%d", dstPartType)
 	}
-	retentionDeadline := currentTimestamp - pt.s.retentionMsecs
+	retentionDeadlineFunc := pt.s.makeRetentionDeadlineFunc(pt.idb, currentTimestamp)
 	activeMerges.Add(1)
 	_ = useSparseCache // unused in OSS version.
 	dmis := pt.idb.getDeletedMetricIDs()
-	err := mergeBlockStreams(&ph, bsw, bsrs, stopCh, dmis, retentionDeadline, rowsMerged, rowsDeleted)
+	err := mergeBlockStreams(&ph, bsw, bsrs, stopCh, dmis, retentionDeadlineFunc, rowsMerged, rowsDeleted)
 	activeMerges.Add(-1)
 	mergesCount.Add(1)
 	if err != nil {

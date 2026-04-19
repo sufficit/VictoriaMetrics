@@ -27,7 +27,7 @@ func BenchmarkMergeBlockStreamsFourSourcesBestCase(b *testing.B) {
 
 func benchmarkMergeBlockStreams(b *testing.B, mps []*inmemoryPart, rowsPerLoop int64) {
 	dmis := &uint64set.Set{}
-	const retentionDeadline = 0
+	retentionDeadlineFunc := func(_ uint64) int64 { return 0 }
 	var rowsMerged, rowsDeleted atomic.Uint64
 
 	b.ReportAllocs()
@@ -46,7 +46,7 @@ func benchmarkMergeBlockStreams(b *testing.B, mps []*inmemoryPart, rowsPerLoop i
 			}
 			mpOut.Reset()
 			bsw.MustInitFromInmemoryPart(&mpOut, -5)
-			if err := mergeBlockStreams(&mpOut.ph, &bsw, bsrs, nil, dmis, retentionDeadline, &rowsMerged, &rowsDeleted); err != nil {
+			if err := mergeBlockStreams(&mpOut.ph, &bsw, bsrs, nil, dmis, retentionDeadlineFunc, &rowsMerged, &rowsDeleted); err != nil {
 				panic(fmt.Errorf("cannot merge block streams: %w", err))
 			}
 		}

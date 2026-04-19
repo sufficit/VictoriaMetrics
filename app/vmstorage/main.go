@@ -33,6 +33,10 @@ import (
 var (
 	retentionPeriod = flagutil.NewRetentionDuration("retentionPeriod", "1M", "Data with timestamps outside the retentionPeriod is automatically deleted. The minimum retentionPeriod is 24h or 1d. "+
 		"See https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#retention. See also -retentionFilter")
+	retentionFilter = flagutil.NewArrayString("retentionFilter", "Per-metric retention filter in the format '{selector}:duration', e.g. '{__name__=~\"ivr_.+\"}:30d'. "+
+		"Metrics matching selector use the specified duration instead of -retentionPeriod. The first matching filter wins. "+
+		"Supported duration units: s (second), m (minute), h (hour), d (day), w (week), y (year). "+
+		"This flag can be specified multiple times.")
 	snapshotAuthKey   = flagutil.NewPassword("snapshotAuthKey", "authKey, which must be passed in query string to /snapshot* pages. It overrides -httpAuth.*")
 	forceMergeAuthKey = flagutil.NewPassword("forceMergeAuthKey", "authKey, which must be passed in query string to /internal/force_merge pages. It overrides -httpAuth.*")
 	forceFlushAuthKey = flagutil.NewPassword("forceFlushAuthKey", "authKey, which must be passed in query string to /internal/force_flush pages. It overrides -httpAuth.*")
@@ -151,6 +155,7 @@ func Init(resetCacheIfNeeded func(mrs []storage.MetricRow)) {
 		TrackMetricNamesStats: *trackMetricNamesStats,
 		IDBPrefillStart:       *idbPrefillStart,
 		LogNewSeries:          *logNewSeries,
+		RetentionFilters:      []string(*retentionFilter),
 	}
 	strg := storage.MustOpenStorage(*DataPath, opts)
 	Storage = strg
