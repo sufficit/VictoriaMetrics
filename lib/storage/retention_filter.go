@@ -28,7 +28,7 @@ type retentionFilter struct {
 
 // simpleMatcher matches a single label against a value.
 type simpleMatcher struct {
-	key        string             // empty string means __name__ (MetricGroup)
+	key        string // empty string means __name__ (MetricGroup)
 	value      string
 	isNegative bool
 	reMatch    func(s string) bool // non-nil when isRegexp
@@ -141,10 +141,23 @@ func parseLabelSelector(selector string) ([]simpleMatcher, error) {
 	return matchers, nil
 }
 
-// parseRetentionDurationMs parses duration strings like "30d", "1y", "8760h", "2w" into milliseconds.
+// parseRetentionDurationMs parses duration strings like "30d", "1y", "8760h", "2w", "500ms" into milliseconds.
+// Supported units: ms (milliseconds), s (seconds), m (minutes), h (hours), d (days), w (weeks), y (years).
 func parseRetentionDurationMs(s string) (int64, error) {
 	if len(s) == 0 {
 		return 0, fmt.Errorf("empty duration")
+	}
+	// Check for "ms" suffix before falling through to single-char suffix handling.
+	if strings.HasSuffix(s, "ms") {
+		numStr := s[:len(s)-2]
+		var n float64
+		if _, err := fmt.Sscanf(numStr, "%f", &n); err != nil {
+			return 0, fmt.Errorf("cannot parse number from %q: %w", numStr, err)
+		}
+		if n <= 0 {
+			return 0, fmt.Errorf("duration must be positive; got %g", n)
+		}
+		return int64(n), nil
 	}
 	unit := s[len(s)-1]
 	numStr := s[:len(s)-1]
@@ -175,6 +188,6 @@ func parseRetentionDurationMs(s string) (int64, error) {
 	case 'y':
 		return int64(n * msPerYear), nil
 	default:
-		return 0, fmt.Errorf("unknown duration unit %q in %q; supported units: s, m, h, d, w, y", unit, s)
+		return 0, fmt.Errorf("unknown duration unit %q in %q; supported units: ms, s, m, h, d, w, y", unit, s)
 	}
 }
