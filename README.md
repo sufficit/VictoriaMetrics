@@ -129,3 +129,114 @@ The provided [ZIP file](https://github.com/VictoriaMetrics/VictoriaMetrics/blob/
 * You may resize the logo as needed, but ensure all proportions remain intact.
 
 Thank you for your cooperation!
+
+---
+
+## Sufficit Fork — Per-metric Retention Filters
+
+This fork extends VictoriaMetrics with a `-retentionFilter` flag that allows applying shorter (or longer) retention periods to specific metrics based on Prometheus/MetricsQL-style label selectors, without requiring the Enterprise edition.
+
+### How it works
+
+Each filter is specified as `{selector}:duration`. Metrics matching the selector use the given duration instead of the global `-retentionPeriod`. Non-matching metrics use the global retention as usual. The **first matching filter wins** when multiple filters are provided. Filtering is applied at merge time.
+
+### `-retentionFilter` flag
+
+```
+-retentionFilter '{selector}:duration'
+```
+
+The flag can be specified multiple times to define multiple filters. Each value must follow the format `{label_filters}:duration`.
+
+**Selector** — a MetricsQL/Prometheus label selector:
+
+```
+{__name__="short_metric"}
+{__name__=~"ivr_.+"}
+{job="ephemeral",env="test"}
+```
+
+**Duration units** supported: `ms` (milliseconds), `s` (seconds), `m` (minutes), `h` (hours), `d` (days), `w` (weeks), `y` (years).
+
+### Examples
+
+```sh
+# Keep metrics starting with "ivr_" for 30 days
+-retentionFilter '{__name__=~"ivr_.+"}:30d'
+
+# Keep short-lived test metrics for 1 hour
+-retentionFilter '{env="test"}:1h'
+
+# Multiple filters (first match wins)
+-retentionFilter '{__name__=~"debug_.+"}:7d'
+-retentionFilter '{team="infra"}:90d'
+```
+
+### Systemd example
+
+```ini
+ExecStart=/usr/local/bin/victoria-metrics-prod \
+  -storageDataPath=/var/lib/victoria-metrics \
+  -retentionPeriod=365d \
+  -retentionFilter='{__name__=~"ivr_.+"}:30d' \
+  -retentionFilter='{__name__=~"call_.+"}:30d' \
+  -retentionFilter='{__name__=~"queue_.+"}:30d'
+```
+
+### Implementation details
+
+| File | Description |
+|------|-------------|
+| `lib/storage/retention_filter.go` | `RetentionFilterSpec`, `retentionFilter`, `simpleMatcher`, `parseRetentionFilters`, `parseRetentionDurationMs` |
+| `lib/storage/storage.go` | `OpenOptions.RetentionFilters`, `makeRetentionDeadlineFunc`, `DebugFlush` |
+| `lib/storage/block_stream_merger.go` | `retentionDeadlineFunc` passed into merge |
+| `lib/storage/merge.go` | Deadline function applied per metric block |
+| `app/vmstorage/main.go` | `-retentionFilter` CLI flag registration |
+| `lib/storage/retention_filter_test.go` | Unit and integration tests |
+
+---
+
+## Building this fork
+
+### Prerequisites
+
+- [Go](https://golang.org/dl/) 1.21 or later
+
+### Build for current OS
+
+```sh
+go build -o victoria-metrics ./app/victoria-metrics/
+```
+
+### Cross-compile for Linux amd64 (deploy to server)
+
+```sh
+GOOS=linux GOARCH=amd64 go build -o victoria-metrics-linux-amd64 ./app/victoria-metrics/
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:GOOS="linux"; $env:GOARCH="amd64"
+& "C:\Program Files\Go\bin\go.exe" build -o victoria-metrics-linux-amd64 ./app/victoria-metrics/
+```
+
+### Run retention filter tests
+
+```sh
+go test ./lib/storage/ -run "TestRetentionFilter" -v -count=1 -timeout 120s
+```
+
+### Deploy to server
+
+```sh
+# Copy binary
+scp -P 26492 victoria-metrics-linux-amd64 root@metrics.sufficit.com.br:/tmp/victoria-metrics-prod-new
+
+# Install and restart
+ssh -p 26492 root@metrics.sufficit.com.br \
+  "mv /tmp/victoria-metrics-prod-new /usr/local/bin/victoria-metrics-prod && \
+   chmod +x /usr/local/bin/victoria-metrics-prod && \
+   systemctl restart victoriametrics && \
+   systemctl is-active victoriametrics"
+```
