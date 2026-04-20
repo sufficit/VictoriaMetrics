@@ -1,3 +1,30 @@
+// Package storage — retention filter tests (Sufficit fork additions)
+//
+// This file contains tests for features added by the Sufficit fork on top of
+// the upstream VictoriaMetrics storage package.  All tests in this file are
+// specific to fork-level behaviour and must not conflict with upstream tests.
+//
+// # Features under test
+//
+//   - parseRetentionDurationMs: extended to support the "ms" (milliseconds) unit
+//     suffix in addition to the upstream units (s, m, h, d, w, y).
+//   - Per-metric retention filters (-retentionFilter flag): storage-level enforcement
+//     that drops time series data outside the configured per-filter window during
+//     partition merges, independently of the global -retentionPeriod setting.
+//
+// # Running
+//
+//	go test ./lib/storage/ -run TestRetentionFilter -v
+//	go test ./lib/storage/ -run TestRetentionFilterDurationParsing -v
+//
+// # Notes
+//
+//   - Tests that verify data removal rely on ForceMergePartitions rather than
+//     real clock sleep.  Rows are inserted with timestamps already outside the
+//     short retention window so the compaction drops them immediately.
+//   - Temporary storage paths created by each test are removed by defer to
+//     keep the working directory clean.
+
 package storage
 
 import (
