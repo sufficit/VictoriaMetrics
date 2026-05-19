@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - cluster
-      - master
+      - main
     paths:
       - '**.go'
   pull_request:
     branches:
       - cluster
-      - master
+      - main
     paths:
       - '**.go'
 

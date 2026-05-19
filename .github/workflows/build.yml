@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - cluster
-      - master
+      - main
     paths:
       - '**.go'
       - '**/Dockerfile'
@@ -14,7 +14,7 @@ on:
   pull_request:
     branches:
       - cluster
-      - master
+      - main
     paths:
       - '**.go'
       - '**/Dockerfile'

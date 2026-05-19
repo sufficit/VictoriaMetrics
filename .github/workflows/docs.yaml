@@ -2,7 +2,7 @@ name: publish-docs
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
     paths:
       - 'docs/**'
       - '.github/workflows/docs.yaml'

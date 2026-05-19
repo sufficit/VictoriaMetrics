@@ -4,14 +4,14 @@ on:
   push:
     branches:
       - cluster
-      - master
+      - main
     paths:
       - 'app/vmui/packages/vmui/**'
       - '.github/workflows/vmui.yml'
   pull_request:
     branches:
       - cluster
-      - master
+      - main
     paths:
       - 'app/vmui/packages/vmui/**'
       - '.github/workflows/vmui.yml'
