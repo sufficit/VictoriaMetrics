@@ -29,3 +29,5 @@ coverage.txt
 cspell.json
 *~
 deployment/docker/provisioning/plugins/
+# Worktrees (padrao): arvores de trabalho em <repo>/.worktrees/
+**/.worktrees/
